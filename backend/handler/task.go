@@ -1,4 +1,4 @@
-package task
+package handler
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type taskHandler struct {
 	taskPostgres database.Postgres
 }
 
-func NewtaskHandler(taskPostgres database.Postgres) *taskHandler {
+func NewTaskHandler(taskPostgres database.Postgres) *taskHandler {
 	return &taskHandler{taskPostgres}
 }
 
