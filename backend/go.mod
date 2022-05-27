@@ -1,4 +1,4 @@
-module go-task-gin
+module github.com/tris-tux/go-task-gin/backend
 
 go 1.18
 

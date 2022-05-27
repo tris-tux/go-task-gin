@@ -11,7 +11,7 @@ type Task struct {
 
 type Detail struct {
 	ID           int    `json:"id"`
-	ObjectTaskFK int    `json:"object_task_fk" binding:"required,number"`
+	ObjectTaskFK int    `json:"object_task_fk"`
 	ObjectName   string `json:"object_name" binding:"required"`
 	IsFinished   bool   `json:"is_finished"`
 }

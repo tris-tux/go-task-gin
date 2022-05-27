@@ -1,9 +1,11 @@
 package schema
 
+import "encoding/json"
+
 type TaskAddRequest struct {
-	Title         string   `json:"title" binding:"required"`
-	ActionTime    int      `json:"action_time" binding:"required,number"`
-	ObjectiveList []string `json:"objective_list"`
+	Title         string      `json:"title" binding:"required"`
+	ActionTime    json.Number `json:"action_time" binding:"required,number"`
+	ObjectiveList []string    `json:"objective_list"`
 }
 
 type TaskUpdateRequest struct {
