@@ -6,15 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/tris-tux/go-task-gin/backend/database"
 	"github.com/tris-tux/go-task-gin/backend/schema"
+	"github.com/tris-tux/go-task-gin/backend/service"
 )
 
 type taskHandler struct {
-	taskPostgres database.Postgres
+	taskPostgres service.Task
 }
 
-func NewTaskHandler(taskPostgres database.Postgres) *taskHandler {
+func NewTask(taskPostgres service.Task) *taskHandler {
 	return &taskHandler{taskPostgres}
 }
 

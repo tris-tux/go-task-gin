@@ -1,20 +1,23 @@
-package database
+package service
 
-import "github.com/tris-tux/go-task-gin/backend/schema"
+import (
+	"github.com/tris-tux/go-task-gin/backend/database"
+	"github.com/tris-tux/go-task-gin/backend/schema"
+)
 
-type Postgres interface {
+type Task interface {
 	Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error)
 }
 
-type postgres struct {
-	repository Repository
+type task struct {
+	repository database.Repository
 }
 
-func NewPostgres(repository Repository) *postgres {
-	return &postgres{repository}
+func NewTask(repository database.Repository) *task {
+	return &task{repository}
 }
 
-func (p *postgres) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
+func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
 	actionTime, _ := taskAddRequest.ActionTime.Int64()
 
 	task := schema.Task{
@@ -25,7 +28,7 @@ func (p *postgres) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []
 		IsFinished: false,
 	}
 
-	newTask, err := p.repository.Create(task)
+	newTask, err := t.repository.Create(task)
 
 	detail := []schema.Detail{}
 	details := taskAddRequest.ObjectiveList
@@ -38,7 +41,7 @@ func (p *postgres) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []
 		detail = append(detail, dtl)
 	}
 
-	newDetail, err := p.repository.CreateDetail(detail)
+	newDetail, err := t.repository.CreateDetail(detail)
 
 	return newTask, newDetail, err
 }
