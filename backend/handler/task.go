@@ -84,6 +84,60 @@ func (h *taskHandler) CreateTask(c *gin.Context) {
 	})
 }
 
+func (h *taskHandler) UpdateTask(c *gin.Context) {
+	var taskUpdateRequest schema.TaskUpdateRequest
+
+	err := c.ShouldBindJSON(&taskUpdateRequest)
+
+	if err != nil {
+		errorMessages := []string{}
+		for _, e := range err.(validator.ValidationErrors) {
+			errorMessage := fmt.Sprintf("Error on Field %s, conditional: %s", e.Field(), e.ActualTag())
+			errorMessages = append(errorMessages, errorMessage)
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"errors": errorMessages,
+		})
+		return
+	}
+
+	idString := c.Param("id")
+	id, _ := strconv.Atoi(idString)
+
+	task, details, err := h.taskPostgres.Update(id, taskUpdateRequest)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"errors": err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":   task,
+		"detail": details,
+	})
+}
+
+func (h *taskHandler) DeleteTask(c *gin.Context) {
+	idString := c.Param("id")
+	id, _ := strconv.Atoi(idString)
+
+	task, det, err := h.taskPostgres.Delete(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"errors": err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":   task,
+		"detail": det,
+	})
+}
+
 // func responseOK(w http.ResponseWriter, body interface{}) {
 // 	w.WriteHeader(http.StatusOK)
 // 	w.Header().Set("Content-Type", "application/json")

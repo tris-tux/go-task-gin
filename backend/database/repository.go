@@ -11,6 +11,9 @@ type Repository interface {
 	FindDetailByObjectTaskFK(ObjectTaskFK int) ([]schema.Detail, error)
 	Create(task schema.Task) (schema.Task, error)
 	CreateDetail(detail []schema.Detail) ([]schema.Detail, error)
+	UpdateTask(task schema.Task) (schema.Task, error)
+	DeleteTask(task schema.Task) (schema.Task, error)
+	DeleteDetails(ID int) (int, error)
 }
 
 type repository struct {
@@ -52,4 +55,23 @@ func (r *repository) CreateDetail(detail []schema.Detail) ([]schema.Detail, erro
 	err := r.db.Create(&detail).Error
 
 	return detail, err
+}
+
+func (r *repository) UpdateTask(task schema.Task) (schema.Task, error) {
+	err := r.db.Save(&task).Error
+
+	return task, err
+}
+
+func (r *repository) DeleteTask(task schema.Task) (schema.Task, error) {
+	err := r.db.Delete(&task).Error
+
+	return task, err
+}
+
+func (r *repository) DeleteDetails(ID int) (int, error) {
+	var details []schema.Detail
+	err := r.db.Where("object_task_fk = ?", ID).Delete(&details).Error
+
+	return ID, err
 }
