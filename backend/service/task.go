@@ -56,7 +56,7 @@ func (t *task) FindAll() ([]schema.TaskResponse, error) {
 func (t *task) FindByID(ID int) (schema.TaskResponse, error) {
 	task, err := t.repository.FindTaskByID(ID)
 
-	details, _ := t.repository.FindDetailByObjectTaskFK(task.ID)
+	details, err := t.repository.FindDetailByObjectTaskFK(task.ID)
 	detailAll := []schema.DetailResponse{}
 	for _, d := range details {
 		detail := schema.DetailResponse{
@@ -81,7 +81,7 @@ func (t *task) FindByID(ID int) (schema.TaskResponse, error) {
 }
 
 func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
-	actionTime, _ := taskAddRequest.ActionTime.Int64()
+	actionTime, err := taskAddRequest.ActionTime.Int64()
 
 	task := schema.Task{
 		Title:      taskAddRequest.Title,

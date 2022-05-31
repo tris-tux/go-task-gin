@@ -21,33 +21,41 @@ func NewTask(taskPostgres service.Task) *taskHandler {
 
 func (h *taskHandler) GetTasks(c *gin.Context) {
 	tasks, err := h.taskPostgres.FindAll()
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": err,
-		})
+		responseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": tasks,
-	})
+	if len(tasks) == 0 {
+		responseError(c, http.StatusNotFound, "Data Not Found")
+		return
+	}
+
+	responseOK(c, tasks)
 }
 
 func (h *taskHandler) GetTask(c *gin.Context) {
 	idString := c.Param("id")
-	id, _ := strconv.Atoi(idString)
-
-	task, err := h.taskPostgres.FindByID(id)
+	id, err := strconv.Atoi(idString)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": err,
-		})
+		responseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": task,
-	})
+	task, err := h.taskPostgres.FindByID(id)
+
+	if err != nil {
+		responseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if task.ID == 0 {
+		responseError(c, http.StatusNotFound, "Data Not Found")
+		return
+	}
+
+	responseOK(c, task)
 }
 
 func (h *taskHandler) CreateTask(c *gin.Context) {
@@ -63,25 +71,22 @@ func (h *taskHandler) CreateTask(c *gin.Context) {
 			errorMessages = append(errorMessages, errorMessage)
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": errorMessages,
-		})
+		responseError(c, http.StatusBadRequest, errorMessages)
 		return
 	}
 
 	task, detail, err := h.taskPostgres.Create(taskAddRequest)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": err,
-		})
+		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"task":   task,
-		"detail": detail,
-	})
+	if task.ID != 0 && len(detail) != 0 {
+		responseOK(c, task)
+	} else {
+		responseError(c, http.StatusBadRequest, "Bad Request")
+	}
 }
 
 func (h *taskHandler) UpdateTask(c *gin.Context) {
@@ -96,9 +101,7 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 			errorMessages = append(errorMessages, errorMessage)
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": errorMessages,
-		})
+		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -108,9 +111,7 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 	task, details, err := h.taskPostgres.Update(id, taskUpdateRequest)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": err,
-		})
+		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -126,9 +127,7 @@ func (h *taskHandler) DeleteTask(c *gin.Context) {
 
 	task, det, err := h.taskPostgres.Delete(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"errors": err,
-		})
+		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -138,17 +137,17 @@ func (h *taskHandler) DeleteTask(c *gin.Context) {
 	})
 }
 
-// func responseOK(w http.ResponseWriter, body interface{}) {
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(body)
-// }
+func responseOK(c *gin.Context, body interface{}) {
+	c.JSON(http.StatusOK, gin.H{
+		"data": body,
+	})
+}
 
-// func responseError(w http.ResponseWriter, code int, message string) {
-// 	w.WriteHeader(code)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	body := map[string]string{
-// 		"error": message,
-// 	}
-// 	json.NewEncoder(w).Encode(body)
-// }
+func responseError(c *gin.Context, code int, message interface{}) {
+	c.JSON(code, gin.H{
+		"message":       "Failed",
+		"error_key":     code,
+		"error_message": message,
+		"error_data":    "{}",
+	})
+}
