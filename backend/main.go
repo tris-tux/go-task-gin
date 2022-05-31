@@ -30,7 +30,11 @@ func main() {
 
 	v1 := router.Group("/v1")
 
+	v1.GET("/task/get", taskHandler.GetTasks)
+	v1.GET("/task/get/:id", taskHandler.GetTask)
 	v1.POST("/task/add", taskHandler.CreateTask)
+	v1.PUT("/task/update/:id", taskHandler.UpdateTask)
+	v1.DELETE("/task/delete/:id", taskHandler.DeleteTask)
 
 	router.Run()
 }

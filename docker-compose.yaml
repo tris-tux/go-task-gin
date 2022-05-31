@@ -22,3 +22,7 @@ services:
       - DB_DATABASE=task
     depends_on:
       - task-gin-postgres
+  # task-gin-frontend:
+  #   build: ./frontend
+  #   ports:
+  #       - 3000:3001
