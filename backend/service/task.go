@@ -10,9 +10,9 @@ import (
 type Task interface {
 	FindAll() ([]schema.TaskResponse, error)
 	FindByID(ID int) (schema.TaskResponse, error)
-	Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error)
-	Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schema.Task, []schema.Detail, error)
-	Delete(ID int) (schema.Task, int, error)
+	Create(taskAddRequest schema.TaskAddRequest) (bool, error)
+	Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (bool, error)
+	Delete(ID int) (bool, error)
 }
 
 type task struct {
@@ -80,7 +80,7 @@ func (t *task) FindByID(ID int) (schema.TaskResponse, error) {
 	return newTask, err
 }
 
-func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
+func (t *task) Create(taskAddRequest schema.TaskAddRequest) (bool, error) {
 	actionTime, err := taskAddRequest.ActionTime.Int64()
 
 	task := schema.Task{
@@ -97,20 +97,56 @@ func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []sche
 	details := taskAddRequest.ObjectiveList
 	for _, v := range details {
 		dtl := schema.Detail{
-			ObjectTaskFK: newTask.ID,
+			ObjectTaskFK: newTask,
 			ObjectName:   v,
 			IsFinished:   false,
 		}
 		detail = append(detail, dtl)
 	}
 
-	newDetail, err := t.repository.CreateDetail(detail)
+	status, err := t.repository.CreateDetail(detail)
 
-	return newTask, newDetail, err
+	return status, err
 }
 
-func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schema.Task, []schema.Detail, error) {
+// func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
+// 	actionTime, err := taskAddRequest.ActionTime.Int64()
+
+// 	task := schema.Task{
+// 		Title:      taskAddRequest.Title,
+// 		ActionTime: int(actionTime),
+// 		CreateTime: int(actionTime),
+// 		UpdateTime: int(actionTime),
+// 		IsFinished: false,
+// 	}
+
+// 	newTask, err := t.repository.Create(task)
+
+// 	detail := []schema.Detail{}
+// 	details := taskAddRequest.ObjectiveList
+// 	for _, v := range details {
+// 		dtl := schema.Detail{
+// 			ObjectTaskFK: newTask.ID,
+// 			ObjectName:   v,
+// 			IsFinished:   false,
+// 		}
+// 		detail = append(detail, dtl)
+// 	}
+
+// 	newDetail, err := t.repository.CreateDetail(detail)
+
+// 	return newTask, newDetail, err
+// }
+
+func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (bool, error) {
 	task, err := t.repository.FindTaskByID(ID)
+	if err != nil {
+		return false, err
+	}
+
+	if task.ID == 0 {
+		return false, err
+	}
 
 	now := time.Now()
 	timeStamp := now.Unix()
@@ -121,31 +157,93 @@ func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schem
 	task.ActionTime = int(timeStamp)
 	task.IsFinished = false
 
-	newTask, err := t.repository.UpdateTask(task)
+	stat, err := t.repository.UpdateTask(task)
+	if err != nil && stat == false {
+		return false, err
+	}
 
 	newDelete, err := t.repository.DeleteDetails(ID)
+	if err != nil && newDelete == false {
+		return false, err
+	}
 
 	detail := []schema.Detail{}
 	details := taskUpdateRequest.ObjectiveList
 	for _, v := range details {
 		dtl := schema.Detail{
-			ObjectTaskFK: newDelete,
+			ObjectTaskFK: ID,
 			ObjectName:   v.ObjectName,
 			IsFinished:   v.IsFinished,
 		}
 		detail = append(detail, dtl)
 	}
 
-	newDetail, err := t.repository.CreateDetail(detail)
-	// task, err := t.repository.UpdateTask(task)
+	statu, err := t.repository.CreateDetail(detail)
+	if err != nil {
+		return false, err
+	}
 
-	return newTask, newDetail, err
+	return statu, err
 }
 
-func (t *task) Delete(ID int) (schema.Task, int, error) {
+// func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schema.Task, []schema.Detail, error) {
+// 	task, err := t.repository.FindTaskByID(ID)
+
+// 	now := time.Now()
+// 	timeStamp := now.Unix()
+
+// 	task.Title = taskUpdateRequest.Title
+// 	task.CreateTime = task.ActionTime
+// 	task.UpdateTime = int(timeStamp)
+// 	task.ActionTime = int(timeStamp)
+// 	task.IsFinished = false
+
+// 	newTask, err := t.repository.UpdateTask(task)
+
+// 	newDelete, err := t.repository.DeleteDetails(ID)
+
+// 	detail := []schema.Detail{}
+// 	details := taskUpdateRequest.ObjectiveList
+// 	for _, v := range details {
+// 		dtl := schema.Detail{
+// 			ObjectTaskFK: newDelete,
+// 			ObjectName:   v.ObjectName,
+// 			IsFinished:   v.IsFinished,
+// 		}
+// 		detail = append(detail, dtl)
+// 	}
+
+// 	newDetail, err := t.repository.CreateDetail(detail)
+
+// 	return newTask, newDetail, err
+// }
+
+func (t *task) Delete(ID int) (bool, error) {
 	task, err := t.repository.FindTaskByID(ID)
 
-	newTask, err := t.repository.DeleteTask(task)
-	newDelete, err := t.repository.DeleteDetails(ID)
-	return newTask, newDelete, err
+	if err != nil {
+		return false, err
+	}
+
+	if task.ID == 0 {
+		return false, err
+	}
+
+	stat, err := t.repository.DeleteTask(task)
+	if err != nil && stat == false {
+		return false, err
+	}
+	statu, err := t.repository.DeleteDetails(ID)
+	if err != nil && statu == false {
+		return false, err
+	}
+	return statu, err
 }
+
+// func (t *task) Delete(ID int) (schema.Task, int, error) {
+// 	task, err := t.repository.FindTaskByID(ID)
+
+// 	newTask, err := t.repository.DeleteTask(task)
+// 	newDelete, err := t.repository.DeleteDetails(ID)
+// 	return newTask, newDelete, err
+// }

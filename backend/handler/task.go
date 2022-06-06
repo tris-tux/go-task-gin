@@ -32,7 +32,7 @@ func (h *taskHandler) GetTasks(c *gin.Context) {
 		return
 	}
 
-	responseOK(c, tasks)
+	responseOK(c, http.StatusOK, tasks)
 }
 
 func (h *taskHandler) GetTask(c *gin.Context) {
@@ -55,7 +55,7 @@ func (h *taskHandler) GetTask(c *gin.Context) {
 		return
 	}
 
-	responseOK(c, task)
+	responseOK(c, http.StatusOK, task)
 }
 
 func (h *taskHandler) CreateTask(c *gin.Context) {
@@ -75,18 +75,19 @@ func (h *taskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	task, detail, err := h.taskPostgres.Create(taskAddRequest)
+	stat, err := h.taskPostgres.Create(taskAddRequest)
 
 	if err != nil {
 		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if task.ID != 0 && len(detail) != 0 {
-		responseOK(c, task)
-	} else {
-		responseError(c, http.StatusBadRequest, "Bad Request")
+	if stat == false {
+		responseError(c, http.StatusNotFound, "Data Not Found")
+		return
 	}
+
+	responseOK(c, http.StatusCreated, "success")
 }
 
 func (h *taskHandler) UpdateTask(c *gin.Context) {
@@ -108,37 +109,41 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 	idString := c.Param("id")
 	id, _ := strconv.Atoi(idString)
 
-	task, details, err := h.taskPostgres.Update(id, taskUpdateRequest)
+	stat, err := h.taskPostgres.Update(id, taskUpdateRequest)
 
 	if err != nil {
 		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":   task,
-		"detail": details,
-	})
+	if stat == false {
+		responseError(c, http.StatusNotFound, "Data Not Found")
+		return
+	}
+
+	responseOK(c, http.StatusOK, "success")
 }
 
 func (h *taskHandler) DeleteTask(c *gin.Context) {
 	idString := c.Param("id")
 	id, _ := strconv.Atoi(idString)
 
-	task, det, err := h.taskPostgres.Delete(id)
+	stat, err := h.taskPostgres.Delete(id)
 	if err != nil {
 		responseError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":   task,
-		"detail": det,
-	})
+	if stat == false {
+		responseError(c, http.StatusNotFound, "Data Not Found")
+		return
+	}
+
+	responseOK(c, http.StatusOK, "success")
 }
 
-func responseOK(c *gin.Context, body interface{}) {
-	c.JSON(http.StatusOK, gin.H{
+func responseOK(c *gin.Context, code int, body interface{}) {
+	c.JSON(code, gin.H{
 		"data": body,
 	})
 }
