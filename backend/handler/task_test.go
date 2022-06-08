@@ -1,9 +1,10 @@
-package handler
+package handler_test
 
 import (
 	"errors"
 	"testing"
-	// . "github.com/tris-tux/go-task-gin/backend/handler"
+
+	. "github.com/tris-tux/go-task-gin/backend/handler"
 )
 
 func Test_errorCode(t *testing.T) {
@@ -32,8 +33,8 @@ func Test_errorCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := errorCode(tt.args.er); got != tt.want {
-				t.Errorf("errorCode() = %v, want %v", got, tt.want)
+			if got := ErrorCode(tt.args.er); got != tt.want {
+				t.Errorf("ErrorCode() = %v, want %v", got, tt.want)
 			}
 		})
 	}

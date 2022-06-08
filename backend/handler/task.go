@@ -20,7 +20,7 @@ func NewTask(taskPostgres service.Task) *taskHandler {
 func (h *taskHandler) GetTasks(c *gin.Context) {
 	tasks, err := h.taskPostgres.FindAll()
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
@@ -31,13 +31,13 @@ func (h *taskHandler) GetTask(c *gin.Context) {
 	idString := c.Param("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
 	task, err := h.taskPostgres.FindByID(id)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
@@ -49,13 +49,13 @@ func (h *taskHandler) CreateTask(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&taskAddRequest)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
 	err = h.taskPostgres.Create(taskAddRequest)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&taskUpdateRequest)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 
 	err = h.taskPostgres.Update(id, taskUpdateRequest)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
@@ -89,14 +89,14 @@ func (h *taskHandler) DeleteTask(c *gin.Context) {
 
 	err := h.taskPostgres.Delete(id)
 	if err != nil {
-		responseError(c, errorCode(err), err.Error())
+		responseError(c, ErrorCode(err), err.Error())
 		return
 	}
 
 	responseOK(c, http.StatusOK, "success")
 }
 
-func errorCode(er error) int {
+func ErrorCode(er error) int {
 	r := er.Error()
 	code := r[0:3]
 	c, _ := strconv.Atoi(code)
