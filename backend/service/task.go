@@ -9,10 +9,10 @@ import (
 
 type Task interface {
 	FindAll() ([]schema.TaskResponse, error)
-	FindByID(ID int) (schema.TaskResponse, error)
-	Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error)
-	Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schema.Task, []schema.Detail, error)
-	Delete(ID int) (schema.Task, int, error)
+	FindByID(ID int) (*schema.TaskResponse, error)
+	Create(taskAddRequest schema.TaskAddRequest) error
+	Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) error
+	Delete(ID int) error
 }
 
 type task struct {
@@ -26,8 +26,14 @@ func NewTask(repository database.Repository) *task {
 func (t *task) FindAll() ([]schema.TaskResponse, error) {
 	taskAll := []schema.TaskResponse{}
 	tasks, err := t.repository.FindTaskAll()
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range tasks {
-		details, _ := t.repository.FindDetailByObjectTaskFK(v.ID)
+		details, err := t.repository.FindDetailByObjectTaskFK(v.ID)
+		if err != nil {
+			return nil, err
+		}
 		detailAll := []schema.DetailResponse{}
 		for _, d := range details {
 			detail := schema.DetailResponse{
@@ -53,10 +59,16 @@ func (t *task) FindAll() ([]schema.TaskResponse, error) {
 	return taskAll, err
 }
 
-func (t *task) FindByID(ID int) (schema.TaskResponse, error) {
+func (t *task) FindByID(ID int) (*schema.TaskResponse, error) {
 	task, err := t.repository.FindTaskByID(ID)
+	if err != nil {
+		return nil, err
+	}
 
 	details, err := t.repository.FindDetailByObjectTaskFK(task.ID)
+	if err != nil {
+		return nil, err
+	}
 	detailAll := []schema.DetailResponse{}
 	for _, d := range details {
 		detail := schema.DetailResponse{
@@ -77,75 +89,93 @@ func (t *task) FindByID(ID int) (schema.TaskResponse, error) {
 		ObjectList: detailAll,
 	}
 
-	return newTask, err
+	return &newTask, err
 }
 
-func (t *task) Create(taskAddRequest schema.TaskAddRequest) (schema.Task, []schema.Detail, error) {
-	actionTime, err := taskAddRequest.ActionTime.Int64()
-
+func (t *task) Create(taskAddRequest schema.TaskAddRequest) error {
 	task := schema.Task{
 		Title:      taskAddRequest.Title,
-		ActionTime: int(actionTime),
-		CreateTime: int(actionTime),
-		UpdateTime: int(actionTime),
+		ActionTime: taskAddRequest.ActionTime,
+		CreateTime: taskAddRequest.ActionTime,
+		UpdateTime: taskAddRequest.ActionTime,
 		IsFinished: false,
 	}
 
 	newTask, err := t.repository.Create(task)
+	if err != nil {
+		return err
+	}
 
 	detail := []schema.Detail{}
 	details := taskAddRequest.ObjectiveList
 	for _, v := range details {
 		dtl := schema.Detail{
-			ObjectTaskFK: newTask.ID,
+			ObjectTaskFK: newTask,
 			ObjectName:   v,
 			IsFinished:   false,
 		}
 		detail = append(detail, dtl)
 	}
 
-	newDetail, err := t.repository.CreateDetail(detail)
+	_ = t.repository.CreateDetail(detail)
 
-	return newTask, newDetail, err
+	return nil
 }
 
-func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) (schema.Task, []schema.Detail, error) {
+func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) error {
 	task, err := t.repository.FindTaskByID(ID)
+	if err != nil {
+		return err
+	}
 
 	now := time.Now()
 	timeStamp := now.Unix()
-
 	task.Title = taskUpdateRequest.Title
 	task.CreateTime = task.ActionTime
 	task.UpdateTime = int(timeStamp)
 	task.ActionTime = int(timeStamp)
 	task.IsFinished = false
+	err = t.repository.UpdateTask(*task)
+	if err != nil {
+		return err
+	}
 
-	newTask, err := t.repository.UpdateTask(task)
-
-	newDelete, err := t.repository.DeleteDetails(ID)
+	err = t.repository.DeleteDetails(ID)
+	if err != nil {
+		return err
+	}
 
 	detail := []schema.Detail{}
 	details := taskUpdateRequest.ObjectiveList
 	for _, v := range details {
 		dtl := schema.Detail{
-			ObjectTaskFK: newDelete,
+			ObjectTaskFK: ID,
 			ObjectName:   v.ObjectName,
 			IsFinished:   v.IsFinished,
 		}
 		detail = append(detail, dtl)
 	}
 
-	newDetail, err := t.repository.CreateDetail(detail)
-	// task, err := t.repository.UpdateTask(task)
+	err = t.repository.CreateDetail(detail)
+	if err != nil {
+		return err
+	}
 
-	return newTask, newDetail, err
+	return err
 }
 
-func (t *task) Delete(ID int) (schema.Task, int, error) {
+func (t *task) Delete(ID int) error {
 	task, err := t.repository.FindTaskByID(ID)
+	if err != nil {
+		return err
+	}
 
-	newTask, err := t.repository.DeleteTask(task)
-	newDelete, err := t.repository.DeleteDetails(ID)
-	return newTask, newDelete, err
+	err = t.repository.DeleteTask(*task)
+	if err != nil {
+		return err
+	}
+
+	err = t.repository.DeleteDetails(ID)
+
+	return err
 }

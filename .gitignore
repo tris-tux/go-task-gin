@@ -1,0 +1,5 @@
+frontend
+backend/database/repository_test
+backend/schema/global_test
+backend/service/task_test
+backend/service/task_mock
