@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/tris-tux/go-task-gin/backend/schema"
 	"github.com/tris-tux/go-task-gin/backend/service"
 )
@@ -21,14 +19,8 @@ func NewTask(taskPostgres service.Task) *taskHandler {
 
 func (h *taskHandler) GetTasks(c *gin.Context) {
 	tasks, err := h.taskPostgres.FindAll()
-
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if len(tasks) == 0 {
-		responseError(c, http.StatusNotFound, "Data Not Found")
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
@@ -39,19 +31,13 @@ func (h *taskHandler) GetTask(c *gin.Context) {
 	idString := c.Param("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err.Error())
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
 	task, err := h.taskPostgres.FindByID(id)
-
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if task.ID == 0 {
-		responseError(c, http.StatusNotFound, "Data Not Found")
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
@@ -62,28 +48,14 @@ func (h *taskHandler) CreateTask(c *gin.Context) {
 	var taskAddRequest schema.TaskAddRequest
 
 	err := c.ShouldBindJSON(&taskAddRequest)
-
 	if err != nil {
-
-		errorMessages := []string{}
-		for _, e := range err.(validator.ValidationErrors) {
-			errorMessage := fmt.Sprintf("Error on Field %s, conditional: %s", e.Field(), e.ActualTag())
-			errorMessages = append(errorMessages, errorMessage)
-		}
-
-		responseError(c, http.StatusBadRequest, errorMessages)
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
-	stat, err := h.taskPostgres.Create(taskAddRequest)
-
+	err = h.taskPostgres.Create(taskAddRequest)
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if stat == false {
-		responseError(c, http.StatusNotFound, "Data Not Found")
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
@@ -94,30 +66,17 @@ func (h *taskHandler) UpdateTask(c *gin.Context) {
 	var taskUpdateRequest schema.TaskUpdateRequest
 
 	err := c.ShouldBindJSON(&taskUpdateRequest)
-
 	if err != nil {
-		errorMessages := []string{}
-		for _, e := range err.(validator.ValidationErrors) {
-			errorMessage := fmt.Sprintf("Error on Field %s, conditional: %s", e.Field(), e.ActualTag())
-			errorMessages = append(errorMessages, errorMessage)
-		}
-
-		responseError(c, http.StatusBadRequest, err)
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
 	idString := c.Param("id")
 	id, _ := strconv.Atoi(idString)
 
-	stat, err := h.taskPostgres.Update(id, taskUpdateRequest)
-
+	err = h.taskPostgres.Update(id, taskUpdateRequest)
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if stat == false {
-		responseError(c, http.StatusNotFound, "Data Not Found")
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
@@ -128,18 +87,20 @@ func (h *taskHandler) DeleteTask(c *gin.Context) {
 	idString := c.Param("id")
 	id, _ := strconv.Atoi(idString)
 
-	stat, err := h.taskPostgres.Delete(id)
+	err := h.taskPostgres.Delete(id)
 	if err != nil {
-		responseError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if stat == false {
-		responseError(c, http.StatusNotFound, "Data Not Found")
+		responseError(c, errorCode(err), err.Error())
 		return
 	}
 
 	responseOK(c, http.StatusOK, "success")
+}
+
+func errorCode(er error) int {
+	r := er.Error()
+	code := r[0:3]
+	c, _ := strconv.Atoi(code)
+	return c
 }
 
 func responseOK(c *gin.Context, code int, body interface{}) {
