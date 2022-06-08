@@ -134,7 +134,7 @@ func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) error 
 	task.CreateTime = task.ActionTime
 	task.UpdateTime = int(timeStamp)
 	task.ActionTime = int(timeStamp)
-	task.IsFinished = false
+	task.IsFinished = IsFinishedTask(taskUpdateRequest.ObjectiveList)
 	err = t.repository.UpdateTask(*task)
 	if err != nil {
 		return err
@@ -145,23 +145,35 @@ func (t *task) Update(ID int, taskUpdateRequest schema.TaskUpdateRequest) error 
 		return err
 	}
 
-	detail := []schema.Detail{}
-	details := taskUpdateRequest.ObjectiveList
-	for _, v := range details {
-		dtl := schema.Detail{
-			ObjectTaskFK: ID,
-			ObjectName:   v.ObjectName,
-			IsFinished:   v.IsFinished,
-		}
-		detail = append(detail, dtl)
-	}
-
-	err = t.repository.CreateDetail(detail)
+	err = t.repository.CreateDetail(detailResponseToDetail(ID, taskUpdateRequest.ObjectiveList))
 	if err != nil {
 		return err
 	}
 
 	return err
+}
+
+func detailResponseToDetail(ID int, detail []schema.DetailResponse) []schema.Detail {
+	details := []schema.Detail{}
+	for _, v := range detail {
+		dtl := schema.Detail{
+			ObjectTaskFK: ID,
+			ObjectName:   v.ObjectName,
+			IsFinished:   v.IsFinished,
+		}
+		details = append(details, dtl)
+	}
+	return details
+}
+
+func IsFinishedTask(detail []schema.DetailResponse) bool {
+	for _, v := range detail {
+		if v.IsFinished == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (t *task) Delete(ID int) error {
